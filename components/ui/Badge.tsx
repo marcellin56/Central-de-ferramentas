@@ -1,5 +1,5 @@
 import React from 'react';
-import { ToolStatus } from '../../types';
+import { ToolStatus } from '../../types.ts';
 
 interface BadgeProps {
   status: ToolStatus;

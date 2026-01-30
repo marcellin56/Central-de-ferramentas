@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '../components/ui/Button';
+import { Button } from '../components/ui/Button.tsx';
 import { LayoutGrid, ArrowRight } from 'lucide-react';
 
 interface LoginProps {
@@ -20,8 +20,8 @@ export const Login: React.FC<LoginProps> = ({ onLogin }) => {
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
-      onLogin();
-      navigate('/dashboard');
+      onLogin(); // Update parent state if needed
+      navigate('/dashboard'); // Go to dashboard
     }, 1000);
   };
 

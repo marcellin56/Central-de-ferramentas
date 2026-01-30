@@ -1,16 +1,22 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Dashboard } from './pages/Dashboard';
-import { ToolViewer } from './pages/ToolViewer';
-import { CURRENT_USER } from './constants';
+import { Dashboard } from './pages/Dashboard.tsx';
+import { ToolViewer } from './pages/ToolViewer.tsx';
+import { Login } from './pages/Login.tsx';
+import { CURRENT_USER } from './constants.tsx';
 
 const App: React.FC = () => {
   return (
     <Router>
       <Routes>
-        {/* Redirect root to dashboard */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* Redirect root to Login first for the full flow */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
         
+        <Route 
+          path="/login" 
+          element={<Login onLogin={() => {}} />} 
+        />
+
         <Route 
           path="/dashboard" 
           element={<Dashboard user={CURRENT_USER} />} 
@@ -21,8 +27,8 @@ const App: React.FC = () => {
           element={<ToolViewer />} 
         />
 
-        {/* Default redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/dashboard" />} />
+        {/* Default catch-all */}
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </Router>
   );

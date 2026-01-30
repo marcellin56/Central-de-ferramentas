@@ -1,6 +1,6 @@
 import React from 'react';
-import { Tool } from '../types';
-import { Badge } from './ui/Badge';
+import { Tool } from '../types.ts';
+import { Badge } from './ui/Badge.tsx';
 import { Star, Play, ExternalLink, Zap } from 'lucide-react';
 
 interface ToolCardProps {

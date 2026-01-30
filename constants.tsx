@@ -1,4 +1,4 @@
-import { Tool, User, Category } from './types';
+import { Tool, User, Category } from './types.ts';
 import { 
   Calculator,
   PlusCircle,

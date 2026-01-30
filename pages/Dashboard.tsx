@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Tool, User, Category } from '../types';
-import { MOCK_TOOLS, CATEGORIES, ICON_MAP } from '../constants';
-import { ToolCard } from '../components/ToolCard';
+import { Tool, User, Category } from '../types.ts';
+import { MOCK_TOOLS, CATEGORIES, ICON_MAP } from '../constants.tsx';
+import { ToolCard } from '../components/ToolCard.tsx';
 import { Search, LayoutGrid, X, Maximize2, ExternalLink, RefreshCw, AlertCircle, Sparkles, Bell, Moon, Sun, Plus, Save, Globe } from 'lucide-react';
-import { Button } from '../components/ui/Button';
+import { Button } from '../components/ui/Button.tsx';
 
 interface DashboardProps {
   user: User;
@@ -92,7 +92,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
           description: newToolForm.description || 'Ferramenta personalizada adicionada pelo usuário.',
           url: newToolForm.url.startsWith('http') ? newToolForm.url : `https://${newToolForm.url}`,
           category: 'all',
-          type: 'iframe', // Default to iframe, could be toggleable
+          type: 'iframe', // Default to iframe
           status: 'active',
           icon: 'Globe', // Default icon for web links
           image: `https://placehold.co/600x400/1e293b/FFF?text=${encodeURIComponent(newToolForm.name.substring(0,2).toUpperCase())}`, // Auto-generate placeholder

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { MOCK_TOOLS, ICON_MAP } from '../constants';
-import { Button } from '../components/ui/Button';
+import { MOCK_TOOLS, ICON_MAP } from '../constants.tsx';
+import { Button } from '../components/ui/Button.tsx';
 import { ArrowLeft, ExternalLink, RefreshCw, AlertCircle } from 'lucide-react';
 
 export const ToolViewer: React.FC = () => {
