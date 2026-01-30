@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Tool, User, Category } from '../types';
 import { MOCK_TOOLS, CATEGORIES, ICON_MAP } from '../constants';
 import { ToolCard } from '../components/ToolCard';
-import { Search, LayoutGrid, X, Maximize2, ExternalLink, RefreshCw, AlertCircle, Sparkles, Bell, Moon, Sun } from 'lucide-react';
+import { Search, LayoutGrid, X, Maximize2, ExternalLink, RefreshCw, AlertCircle, Sparkles, Bell, Moon, Sun, Plus, Save, Globe } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 
 interface DashboardProps {
@@ -10,20 +10,35 @@ interface DashboardProps {
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
-  // State for interaction
+  // --- State ---
   const [activeTool, setActiveTool] = useState<Tool | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [favorites, setFavorites] = useState<string[]>([]);
   const [iframeKey, setIframeKey] = useState(0); 
   const [isToolLoading, setIsToolLoading] = useState(false);
-  
-  // Theme State (Default: Light)
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
 
-  // --- Logic ---
+  // Dynamic Tools State
+  const [customTools, setCustomTools] = useState<Tool[]>([]);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newToolForm, setNewToolForm] = useState({ name: '', url: '', description: '' });
+
+  // --- Effects & Logic ---
   
-  // Apply theme to document
+  // Load custom tools from LocalStorage on mount
+  useEffect(() => {
+    const savedTools = localStorage.getItem('nexus_custom_tools');
+    if (savedTools) {
+        try {
+            setCustomTools(JSON.parse(savedTools));
+        } catch (e) {
+            console.error("Failed to parse custom tools", e);
+        }
+    }
+  }, []);
+
+  // Theme logic
   useEffect(() => {
     if (theme === 'dark') {
         document.documentElement.classList.add('dark');
@@ -42,19 +57,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     );
   };
 
+  // Combine Mock and Custom Tools
+  const allTools = useMemo(() => {
+      return [...customTools, ...MOCK_TOOLS];
+  }, [customTools]);
+
   const filteredTools = useMemo(() => {
-    return MOCK_TOOLS.filter(tool => {
+    return allTools.filter(tool => {
       const matchesSearch = tool.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                             tool.description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesCategory = selectedCategory === 'all' || tool.category === selectedCategory || tool.category === 'all';
       return matchesSearch && matchesCategory;
     });
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, allTools]);
 
   const handleOpenTool = (tool: Tool) => {
     if (tool.status === 'coming_soon') return;
-    
-    // Set active tool to trigger the "expand" view
     setIsToolLoading(true);
     setIframeKey(prev => prev + 1);
     setActiveTool(tool);
@@ -64,10 +82,105 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
     setActiveTool(null);
   };
 
-  // --- Internal Component for the Expanded View ---
+  // --- Add Tool Logic ---
+  const handleSaveTool = (e: React.FormEvent) => {
+      e.preventDefault();
+      
+      const newTool: Tool = {
+          id: `custom-${Date.now()}`,
+          name: newToolForm.name,
+          description: newToolForm.description || 'Ferramenta personalizada adicionada pelo usuário.',
+          url: newToolForm.url.startsWith('http') ? newToolForm.url : `https://${newToolForm.url}`,
+          category: 'all',
+          type: 'iframe', // Default to iframe, could be toggleable
+          status: 'active',
+          icon: 'Globe', // Default icon for web links
+          image: `https://placehold.co/600x400/1e293b/FFF?text=${encodeURIComponent(newToolForm.name.substring(0,2).toUpperCase())}`, // Auto-generate placeholder
+      };
+
+      const updatedTools = [newTool, ...customTools];
+      setCustomTools(updatedTools);
+      localStorage.setItem('nexus_custom_tools', JSON.stringify(updatedTools));
+      
+      // Reset and close
+      setNewToolForm({ name: '', url: '', description: '' });
+      setIsAddModalOpen(false);
+  };
+
+  // --- Sub-Components ---
+
+  const AddToolModal = () => {
+      if (!isAddModalOpen) return null;
+
+      return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsAddModalOpen(false)}></div>
+            
+            {/* Modal */}
+            <div className="relative bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl shadow-2xl border border-white/20 p-8 animate-slide-up">
+                <div className="flex justify-between items-center mb-6">
+                    <div>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">Adicionar Ferramenta</h2>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Insira o link da aplicação web.</p>
+                    </div>
+                    <button onClick={() => setIsAddModalOpen(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors">
+                        <X size={20} className="text-slate-500" />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSaveTool} className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2">Nome da Aplicação</label>
+                        <input 
+                            required
+                            type="text" 
+                            placeholder="Ex: Painel de Vendas"
+                            value={newToolForm.name}
+                            onChange={e => setNewToolForm({...newToolForm, name: e.target.value})}
+                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2">URL (Link Web)</label>
+                        <div className="relative">
+                            <Globe size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input 
+                                required
+                                type="text" 
+                                placeholder="https://..."
+                                value={newToolForm.url}
+                                onChange={e => setNewToolForm({...newToolForm, url: e.target.value})}
+                                className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white"
+                            />
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wide mb-2">Descrição (Opcional)</label>
+                        <textarea 
+                            rows={3}
+                            placeholder="Para que serve esta ferramenta?"
+                            value={newToolForm.description}
+                            onChange={e => setNewToolForm({...newToolForm, description: e.target.value})}
+                            className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-slate-900 dark:text-white resize-none"
+                        />
+                    </div>
+
+                    <div className="pt-4 flex gap-3">
+                        <Button type="button" variant="ghost" className="flex-1" onClick={() => setIsAddModalOpen(false)}>Cancelar</Button>
+                        <Button type="submit" className="flex-1 shadow-lg shadow-brand-500/20">
+                            <Save size={16} className="mr-2" /> Salvar Ferramenta
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </div>
+      );
+  };
+
   const ExpandedToolView = () => {
     if (!activeTool) return null;
-    const Icon = ICON_MAP[activeTool.icon] || ICON_MAP['Database'];
+    const Icon = ICON_MAP[activeTool.icon] || Globe;
 
     return (
       <div className="fixed inset-0 z-[100] flex flex-col animate-fade-in">
@@ -163,7 +276,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
   return (
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0f172a] flex flex-col font-sans text-slate-600 dark:text-slate-300 relative overflow-x-hidden transition-colors duration-500">
       
-      {/* BACKGROUND DECORATION (Essential for Glassmorphism) */}
+      {/* ADD TOOL MODAL */}
+      <AddToolModal />
+
+      {/* BACKGROUND DECORATION */}
       <div className="fixed inset-0 z-0 pointer-events-none">
           <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-brand-200/40 dark:bg-brand-900/20 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-screen opacity-70 animate-pulse transition-all duration-1000"></div>
           <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-200/40 dark:bg-blue-900/20 rounded-full blur-[100px] mix-blend-multiply dark:mix-blend-screen opacity-70 transition-all duration-1000"></div>
@@ -214,33 +330,33 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 group-focus-within:text-brand-500 transition-colors" size={18} />
                     <input 
                         type="text" 
-                        placeholder="O que você precisa?" 
+                        placeholder="Buscar..." 
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 pr-5 py-2.5 bg-slate-100/50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-brand-300 focus:ring-4 focus:ring-brand-500/10 rounded-full text-sm w-56 transition-all outline-none text-slate-800 dark:text-white"
+                        className="pl-10 pr-5 py-2.5 bg-slate-100/50 dark:bg-slate-900/50 border border-transparent focus:bg-white dark:focus:bg-slate-900 focus:border-brand-300 focus:ring-4 focus:ring-brand-500/10 rounded-full text-sm w-32 xl:w-56 transition-all outline-none text-slate-800 dark:text-white"
                     />
                 </div>
+
+                {/* NEW: Add Tool Button */}
+                <button 
+                    onClick={() => setIsAddModalOpen(true)}
+                    className="flex items-center gap-2 px-4 py-2 bg-brand-500 hover:bg-brand-600 text-white rounded-full shadow-lg shadow-brand-500/20 transition-all transform active:scale-95"
+                    title="Adicionar Nova Ferramenta"
+                >
+                    <Plus size={18} strokeWidth={3} />
+                    <span className="hidden sm:inline font-bold text-xs uppercase tracking-wide">Novo</span>
+                </button>
 
                 {/* Theme Toggle Button */}
                 <button 
                     onClick={toggleTheme}
                     className="p-2.5 text-slate-400 dark:text-slate-400 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-slate-700/50 rounded-full transition-colors"
-                    title={theme === 'light' ? 'Ativar Modo Escuro' : 'Ativar Modo Claro'}
                 >
                     {theme === 'light' ? <Moon size={20} /> : <Sun size={20} />}
                 </button>
 
-                {/* Icons */}
-                <button className="hidden sm:flex p-2.5 text-slate-400 dark:text-slate-400 hover:text-brand-600 hover:bg-brand-50 dark:hover:bg-slate-700/50 rounded-full transition-colors">
-                    <Bell size={20} />
-                </button>
-
                 {/* User Profile */}
                 <div className="flex items-center gap-3 pl-2 sm:pl-4 sm:border-l sm:border-slate-200/60 dark:sm:border-slate-700/60">
-                    <div className="text-right hidden xl:block leading-tight">
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{user.name}</p>
-                        <p className="text-[10px] text-brand-600 dark:text-brand-400 font-bold uppercase tracking-wide">Admin</p>
-                    </div>
                     <div className="relative group cursor-pointer">
                         <img src={user.avatar} alt="User" className="w-11 h-11 rounded-full bg-slate-200 object-cover ring-4 ring-white dark:ring-slate-700 shadow-md transition-transform group-hover:scale-105" />
                         <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-brand-500 border-2 border-white dark:border-slate-800 rounded-full"></span>
@@ -262,10 +378,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <span className="w-8 h-1 bg-gradient-to-l from-brand-400 to-brand-600 rounded-full"></span>
                  </div>
                 <h1 className="text-3xl md:text-5xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
-                    Central de Ferramentas
+                    Central de Ferramentas Web
                 </h1>
                 <p className="text-slate-500 dark:text-slate-400 max-w-xl mx-auto text-lg">
-                    Acesse todas as aplicações integradas da empresa em um único ambiente seguro e otimizado.
+                    Sua plataforma totalmente WEB para acessar aplicações integradas em um único ambiente seguro e otimizado.
                 </p>
             </div>
         </div>
@@ -280,7 +396,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user }) => {
                     <h2 className="text-sm font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">Acesso Rápido</h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-                     {MOCK_TOOLS.filter(t => favorites.includes(t.id)).map(tool => (
+                     {allTools.filter(t => favorites.includes(t.id)).map(tool => (
                         <ToolCard 
                             key={tool.id} 
                             tool={tool} 
